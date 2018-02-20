@@ -1,6 +1,6 @@
 from analiser import classify_tokens, find_tokens
 from AstNode import AstNode
-import Token
+from Token import Token
 import Types
 
 class Parser:
@@ -22,6 +22,7 @@ class Parser:
 			return self.tokens[len(self.tokens) - 1]
 
 	def number(self):
+		"""number -> <число>"""
 		print('{}: token: {}'.format('num', self._curr_token().value))
 		token = self._curr_token()
 		self._skip()
@@ -30,7 +31,16 @@ class Parser:
 		elif token.type == Types.Float:
 			return AstNode(token)
 
+	def identifier(self):
+		"""identifier -> <идентификатор>"""
+		print('{}: token: {}'.format('ident', self._curr_token().value))
+		token = self._curr_token()
+		self._skip()
+		if token.type == Types.Identifier:
+			return AstNode(token) 
+
 	def group(self):
+		"""group -> '(' term ')' | identifier | number"""
 		print('{}: token: {}'.format('group', self._curr_token().value))
 		token = self._curr_token()
 
@@ -41,6 +51,8 @@ class Parser:
 			if token.value == ')':
 				self._skip()
 				return result
+		elif token.type == Types.Identifier:
+			return self.identifier()
 		else:
 			return self.number()
 
@@ -79,17 +91,33 @@ class Parser:
 	def term(self):
 		return self.add()
 
+	def assign(self):
+		"""identifier '=' term"""
+		ident_token = self._curr_token()
+		if ident_token.type == Types.Identifier:
+			identifier = self.identifier()
+		assign_token = self._curr_token()
+		if assign_token.value != '=':
+			print('ERROR {}:{}: ожидался оператор {}'.format(assign_token.start_pos,
+					assign_token.num_line, "'='"))
+			exit()
+		self._skip()
+		value = self.term()
+		return AstNode(assign_token, identifier, value)
+
+	def program(self):
+		"""program -> ( assign )*"""
+		program_token = Token('program', Types.Program, 'program', 0, 0)
+		program = AstNode(program_token)
+		program.add_child(self.assign())
+		return program
 
 
-tokens = classify_tokens(find_tokens('3+4*(2+7-3)+5*10', 1))
-for token in tokens:
-	print(token)
+
+
+tokens = classify_tokens(find_tokens('a = 5', 1))
 parser = Parser(tokens)
-tree = parser.term()
-print(tree.token)
-for c in tree.childs:
-	print('\t{}'.format(c.token))
-	for c1 in c.childs:
-		print('\t{}'.format(c1.token))
-		for c2 in c1.childs:
-			print('\t{}'.format(c2.token))
+tree = parser.program()
+print('a = 5')
+print(tree.token.value)
+tree.print_tree(tree)

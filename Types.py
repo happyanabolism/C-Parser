@@ -29,3 +29,6 @@ class Char(Constant):
 
 class Error:
     pass
+
+class Program:
+    pass
