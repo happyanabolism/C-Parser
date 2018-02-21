@@ -4,7 +4,7 @@ from Token import Token
 from Types import (Keyword, Identifier, Float, String,
 				  Operator, Separator, Error, Integer, Char)
 from types_table import keywords, separators, operators, double_operators
-from exceptions2 import BracketsException
+from exceptions2 import BracketsError
 
 
 float_match = r'^[0-9]*[.,][0-9]+$'
@@ -32,10 +32,11 @@ def check_brackets(tokens):
             meetings -= 1
             brackets_tokens.append(token)
     if meetings > 0:
-    	raise BracketsException('ERROR {}:{} : Ожидался оператор {}'.format(
-    				tokens[len(brackets_tokens) - 1][1], tokens[0][2], "')'"))
+    	raise BracketsError(tokens[len(brackets_tokens) - 1][1], tokens[0][2], 
+    		'Ожидался оператор {}'.format("')'"))
     elif meetings < 0:
-    	raise BracketsException('ERROR {}:{} : Ожидался оператор {}'.format(brackets_tokens[0][1], tokens[0][2], "'('"))
+    	raise BracketsError(brackets_tokens[0][1], tokens[0][2],
+    		'Ожидался оператор {}'.format("'('"))
     else:
     	pass
 		
@@ -68,11 +69,12 @@ def find_tokens(line, num_line):
 		pos = line.find(token, pos + 1)
 		res_tokens.append([token, pos, num_line])
 
-	try:
-		check_brackets(res_tokens)
-	except BracketsException as error:
-		print(error)
-		exit(1)
+	#try:
+	#	check_brackets(res_tokens)
+	#except BracketsError as error:
+	#	print(error)
+	#	exit(1)
+	check_brackets(res_tokens)
 
 	return res_tokens
 

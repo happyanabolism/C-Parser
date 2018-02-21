@@ -1,5 +1,7 @@
 from analiser import classify_tokens, find_tokens
-from types_table import types, comparison_operators
+from types_table import types, comparison_operators, end_of_line
+from exceptions2 import (IdentifierError, BracketsError, SyntxError,
+						 ComparisonError)
 from AstNode import AstNode
 from Token import Token
 import Types
@@ -52,16 +54,23 @@ class Parser:
 		if token.value in comparison_operators:
 			return AstNode(token)
 		else:
-			print('ERROR {}:{}: ожидался оператор сравнения'.format(token.start_pos,
-					token.num_line))
-			exit()
+			raise ComparisonError(token.start_pos, token.num_line,
+					'ожидался оператор сравнения')
+
+	def end_of_line(self):
+		"""end_of_line -> ';'"""
+		token = self._curr_token()
+		self._skip()
+		if token.value != end_of_line:
+			raise SyntxError(token.start_pos, token.num_line,
+					"ожидался оператор '{}'".format(end_of_line))
 
 	def parenthesis(self, symbol):
 		"""parenthesis -> symbol"""
 		token = self._curr_token()
 		self._skip()
 		if token.value != symbol:
-			print("ERROR {}:{}: ожидался оператор '{}'".format(token.start_pos,
+			print("ERROR {}:{} : ожидался оператор '{}'".format(token.start_pos,
 					token.num_line, symbol))
 			exit()
 
@@ -73,14 +82,16 @@ class Parser:
 			self._skip()
 			result = self.term()
 			token = self._curr_token()
-			self.parenthesis(')')
-			return result
+			if token.value == ')':
+				self._skip()
+				return result
 		elif token.type == Types.Identifier:
 			return self.identifier()
-		elif token.value in types:
-			return self.type()
-		else:
+		elif token.type == Types.Integer or token.type == Types.Float:
 			return self.number()
+		else:
+			raise IdentifierError(token.start_pos, token.num_line,
+				 "ожидалось число или идентификатор '{}'".format(token.value))
 
 	def add(self):
 		result = self.mult()
@@ -124,10 +135,7 @@ class Parser:
 						assign_token.num_line, "'='"))
 			self._skip()
 			value = self.term()
-			token = self._curr_token()
-			if token.value != ';':
-				print('ERROR {}:{}: ожидался оператор {}'.format(assign_token.start_pos,
-						assign_token.num_line, "';'"))
+			separator_token = self.end_of_line()
 			return AstNode(assign_token, identifier, value)
 
 	def predicate(self):
@@ -171,17 +179,21 @@ class Parser:
 
 
 
-s = 'int a = (5 + 7) * (9 - 1);'
+s = 'int a = ((5 +- 7) * (9 - 1));'
 i = 'if (a > 4 + 7 * (3 + 3))'
-tokens = classify_tokens(find_tokens(s, 1))
-parser = Parser(tokens)
-tree = parser.program()
-print(s)
+try:
+	tokens = classify_tokens(find_tokens(s, 1))
+	parser = Parser(tokens)
+	print(s)
+	tree = parser.program()
+except SyntxError as error:
+	print(error)
+	exit(1)
 print(tree.token.value)
 tree.print_tree(tree)
-tokens = classify_tokens(find_tokens(i, 1))
+tokens = classify_tokens(find_tokens(i, 2))
 parser = Parser(tokens)
-tree = parser.program()
 print(i)
+tree = parser.program()
 print(tree.token.value)
 tree.print_tree(tree)

@@ -10,3 +10,4 @@ double_operators = ('==', '>=', '<=', '++', '--', '<<', '>>', '||', '&&', '+=', 
 separators = (' ', ';', '{', '}', ')', '(', ',', '\t', '#', '\n', )
 types = ('bool', 'int', 'float', 'char', 'double', )
 comparison_operators = ('==', '>=', '<=', '!=', '<', '>', )
+end_of_line = ';'
