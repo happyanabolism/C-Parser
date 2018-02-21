@@ -1,5 +1,5 @@
 from analiser import classify_tokens, find_tokens
-from types_table import types
+from types_table import types, comparison_operators
 from AstNode import AstNode
 from Token import Token
 import Types
@@ -24,7 +24,6 @@ class Parser:
 
 	def number(self):
 		"""number -> <число>"""
-		print('{}: token: {}'.format('num', self._curr_token().value))
 		token = self._curr_token()
 		self._skip()
 		if token.type == Types.Integer:
@@ -34,7 +33,6 @@ class Parser:
 
 	def identifier(self):
 		"""identifier -> <идентификатор>"""
-		print('{}: token: {}'.format('ident', self._curr_token().value))
 		token = self._curr_token()
 		self._skip()
 		if token.type == Types.Identifier:
@@ -42,15 +40,33 @@ class Parser:
 
 	def type(self):
 		"""type -> <тип>"""
-		print('{}: token: {}'.format('type', self._curr_token().value))
 		token = self._curr_token()
 		self._skip()
 		if token.value in types:
 			return AstNode(token) 
 
+	def comparison(self):
+		"""comparison -> <сравнение>"""
+		token = self._curr_token()
+		self._skip()
+		if token.value in comparison_operators:
+			return AstNode(token)
+		else:
+			print('ERROR {}:{}: ожидался оператор сравнения'.format(token.start_pos,
+					token.num_line))
+			exit()
+
+	def parenthesis(self, symbol):
+		"""parenthesis -> symbol"""
+		token = self._curr_token()
+		self._skip()
+		if token.value != symbol:
+			print('ERROR {}:{}: ожидался оператор {}'.format(token.start_pos,
+					token.num_line, symbol))
+			exit()
+
 	def group(self):
-		"""group -> '(' term ')' | identifier | number | type"""
-		print('{}: token: {}'.format('group', self._curr_token().value))
+		"""group -> '(' term ')' | identifier | number"""
 		token = self._curr_token()
 
 		if token.value == '(':
@@ -68,9 +84,7 @@ class Parser:
 			return self.number()
 
 	def add(self):
-		print('{}: token: {} {}'.format('add', self._curr_token().value, 1))
 		result = self.mult()
-		print('{}: token: {} result: {}'.format('add', self._curr_token().value, result))
 		token = self._curr_token()
 		while token.value == '+' or token.value == '-':
 			operation = token.value
@@ -84,10 +98,8 @@ class Parser:
 		return result
 
 	def mult(self):
-		print('{}: token: {} {}'.format('mult', self._curr_token().value, 1))
 		result = self.group()
 		token = self._curr_token()
-		print('{}: token: {}'.format('mult', self._curr_token().value))
 		while token.value == '*' or token.value == '/':
 			operation = token.value
 			self._skip()
@@ -107,42 +119,71 @@ class Parser:
 		ident_token = self._curr_token()
 		if ident_token.type == Types.Identifier:
 			identifier = self.identifier()
-		assign_token = self._curr_token()
-		if assign_token.value != '=':
-			print('ERROR {}:{}: ожидался оператор {}'.format(assign_token.start_pos,
-					assign_token.num_line, "'='"))
-			exit()
-		self._skip()
-		value = self.term()
-		self._skip()
-		token = self._curr_token()
-		if token.value != ';':
-			print('ERROR {}:{}: ожидался оператор {}'.format(assign_token.start_pos,
-					assign_token.num_line, "';'"))
-			exit() 
-		return AstNode(assign_token, identifier, value)
+			assign_token = self._curr_token()
+			if assign_token.value != '=':
+				print('ERROR {}:{}: ожидался оператор {}'.format(assign_token.start_pos,
+						assign_token.num_line, "'='"))
+			self._skip()
+			value = self.term()
+			self._skip()
+			token = self._curr_token()
+			if token.value != ';':
+				print('ERROR {}:{}: ожидался оператор {}'.format(assign_token.start_pos,
+						assign_token.num_line, "';'"))
+			return AstNode(assign_token, identifier, value)
+
+	def predicate(self):
+		"""predicate -> term comparison term | term"""
+		left = self.term()
+		comparison = self.comparison()
+		right = self.term()
+		return AstNode(comparison.token, left, right)
+
+	def if_condition(self):
+		"""if_condition -> if '(' predicate ')'"""
+		if_token = self._curr_token()
+		if if_token.value == 'if':
+			self._skip()
+			self.parenthesis('(')
+			predicate = self.predicate()
+			self.parenthesis(')')
+			return AstNode(if_token, predicate, None)
+
 
 	def assign(self):
 		"""assign -> type init"""
 		type_token = self.type()
-		init_token = self.init()
-		init_token.print_tree(init_token)
-		return AstNode(type_token.token, child_l=init_token, child_r=None)
+		if type_token != None:
+			init_token = self.init()
+			return AstNode(type_token.token, child_l=init_token, child_r=None)
 
 
 	def program(self):
-		"""program -> ( assign )*"""
+		"""program -> assign | if_condition"""
 		program_token = Token('program', Types.Program, 'program', 0, 0)
 		program = AstNode(program_token)
-		program.add_child(self.assign())
+		tree = self.assign()
+		if tree == None:
+			self.position = 0
+			tree = self.if_condition()
+		if tree == None:
+			return
+		program.add_child(tree)
 		return program
 
 
 
-
-tokens = classify_tokens(find_tokens('int a = (5 + 7) * 9 - 1;', 1))
+s = 'int a = (5 + 7) * 9 - 1;'
+i = 'if (a > 4 + 7 * (3 + 3))'
+tokens = classify_tokens(find_tokens(s, 1))
 parser = Parser(tokens)
 tree = parser.program()
-print('a = 5')
+print(s)
+print(tree.token.value)
+tree.print_tree(tree)
+tokens = classify_tokens(find_tokens(i, 1))
+parser = Parser(tokens)
+tree = parser.program()
+print(i)
 print(tree.token.value)
 tree.print_tree(tree)
