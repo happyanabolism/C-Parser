@@ -20,7 +20,7 @@ class Parser:
 		try:
 			return self.tokens[self.position]
 		except:
-			return self.tokens[len(self.tokens) - 1]
+			return  self.tokens[self.position - 1]
 
 	def number(self):
 		"""number -> <число>"""
@@ -61,7 +61,7 @@ class Parser:
 		token = self._curr_token()
 		self._skip()
 		if token.value != symbol:
-			print('ERROR {}:{}: ожидался оператор {}'.format(token.start_pos,
+			print("ERROR {}:{}: ожидался оператор '{}'".format(token.start_pos,
 					token.num_line, symbol))
 			exit()
 
@@ -73,9 +73,8 @@ class Parser:
 			self._skip()
 			result = self.term()
 			token = self._curr_token()
-			if token.value == ')':
-				self._skip()
-				return result
+			self.parenthesis(')')
+			return result
 		elif token.type == Types.Identifier:
 			return self.identifier()
 		elif token.value in types:
@@ -125,7 +124,6 @@ class Parser:
 						assign_token.num_line, "'='"))
 			self._skip()
 			value = self.term()
-			self._skip()
 			token = self._curr_token()
 			if token.value != ';':
 				print('ERROR {}:{}: ожидался оператор {}'.format(assign_token.start_pos,
@@ -173,7 +171,7 @@ class Parser:
 
 
 
-s = 'int a = (5 + 7) * 9 - 1;'
+s = 'int a = (5 + 7) * (9 - 1);'
 i = 'if (a > 4 + 7 * (3 + 3))'
 tokens = classify_tokens(find_tokens(s, 1))
 parser = Parser(tokens)

@@ -4,6 +4,7 @@ from Token import Token
 from Types import (Keyword, Identifier, Float, String,
 				  Operator, Separator, Error, Integer, Char)
 from types_table import keywords, separators, operators, double_operators
+from exceptions2 import BracketsException
 
 
 float_match = r'^[0-9]*[.,][0-9]+$'
@@ -19,6 +20,25 @@ def remove_empty_tokens(tokens):
 	tokens = list(filter(lambda x: x not in whitespces, tokens))
 	return tokens
 
+
+def check_brackets(tokens):
+    meetings = 0
+    brackets_tokens = list()
+    for token in tokens:
+        if token[0] == '(':
+            meetings += 1
+            brackets_tokens.append(token)
+        elif token[0] == ')':
+            meetings -= 1
+            brackets_tokens.append(token)
+    if meetings > 0:
+    	raise BracketsException('ERROR {}:{} : Ожидался оператор {}'.format(
+    				tokens[len(brackets_tokens) - 1][1], tokens[0][2], "')'"))
+    elif meetings < 0:
+    	raise BracketsException('ERROR {}:{} : Ожидался оператор {}'.format(brackets_tokens[0][1], tokens[0][2], "'('"))
+    else:
+    	pass
+		
 
 def find_tokens(line, num_line):
 	res_tokens = list()
@@ -48,6 +68,12 @@ def find_tokens(line, num_line):
 		pos = line.find(token, pos + 1)
 		res_tokens.append([token, pos, num_line])
 
+	try:
+		check_brackets(res_tokens)
+	except BracketsException as error:
+		print(error)
+		exit(1)
+
 	return res_tokens
 
 
@@ -73,7 +99,6 @@ def classify_tokens(tokens):
 			classified_tokens.append(Token(token[0], Identifier, 'identifier', token[1], token[2]))
 		else:
 			classified_tokens.append(Token(token[0], Error, 'error', token[1], token[2]))
-
 	return sorted(classified_tokens, key=lambda x: x.start_pos)
 
 
