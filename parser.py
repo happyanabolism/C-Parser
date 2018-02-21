@@ -1,4 +1,5 @@
 from analiser import classify_tokens, find_tokens
+from types_table import types
 from AstNode import AstNode
 from Token import Token
 import Types
@@ -37,10 +38,18 @@ class Parser:
 		token = self._curr_token()
 		self._skip()
 		if token.type == Types.Identifier:
+			return AstNode(token)
+
+	def type(self):
+		"""type -> <тип>"""
+		print('{}: token: {}'.format('type', self._curr_token().value))
+		token = self._curr_token()
+		self._skip()
+		if token.value in types:
 			return AstNode(token) 
 
 	def group(self):
-		"""group -> '(' term ')' | identifier | number"""
+		"""group -> '(' term ')' | identifier | number | type"""
 		print('{}: token: {}'.format('group', self._curr_token().value))
 		token = self._curr_token()
 
@@ -53,6 +62,8 @@ class Parser:
 				return result
 		elif token.type == Types.Identifier:
 			return self.identifier()
+		elif token.value in types:
+			return self.type()
 		else:
 			return self.number()
 
@@ -91,8 +102,8 @@ class Parser:
 	def term(self):
 		return self.add()
 
-	def assign(self):
-		"""identifier '=' term"""
+	def init(self):
+		"""identifier '=' term ;"""
 		ident_token = self._curr_token()
 		if ident_token.type == Types.Identifier:
 			identifier = self.identifier()
@@ -103,7 +114,21 @@ class Parser:
 			exit()
 		self._skip()
 		value = self.term()
+		self._skip()
+		token = self._curr_token()
+		if token.value != ';':
+			print('ERROR {}:{}: ожидался оператор {}'.format(assign_token.start_pos,
+					assign_token.num_line, "';'"))
+			exit() 
 		return AstNode(assign_token, identifier, value)
+
+	def assign(self):
+		"""assign -> type init"""
+		type_token = self.type()
+		init_token = self.init()
+		init_token.print_tree(init_token)
+		return AstNode(type_token.token, child_l=init_token, child_r=None)
+
 
 	def program(self):
 		"""program -> ( assign )*"""
@@ -115,7 +140,7 @@ class Parser:
 
 
 
-tokens = classify_tokens(find_tokens('a = 5', 1))
+tokens = classify_tokens(find_tokens('int a = (5 + 7) * 9 - 1;', 1))
 parser = Parser(tokens)
 tree = parser.program()
 print('a = 5')

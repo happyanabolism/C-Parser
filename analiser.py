@@ -3,6 +3,8 @@ from tabulate import tabulate
 from Token import Token
 from Types import (Keyword, Identifier, Float, String,
 				  Operator, Separator, Error, Integer, Char)
+from types_table import keywords, separators, operators, double_operators
+
 
 float_match = r'^[0-9]*[.,][0-9]+$'
 integer_match = r'^[-+]?\d*$'
@@ -10,16 +12,6 @@ string_match = r'".*"'
 char_match = r"'.{1}'"
 variable_match = r'(^[a-zA-Z_$][a-zA-Z0-9_$]*$)'
 
-keywords = ('else', 'auto',	'enum',	'operator', 'bool', 'true',
-            'break', 'case', 'extern', 'typedef', 'false', 'register', 'char',
-            'float', 'for', 'return', 'const', 'short',	'unsigned',	'signed',
-            'continue', 'if', 'sizeof', 'virtual', 'default', 'static', 'void',
-            'delete', 'int', 'volatile', 'do', 'long', 'struct', 'double', 'switch',
-            'while', 'define', 'include', )
-
-operators = ('=', '+', '-', '*', '/', '%', '<', '>', '|', '&', '^', '[', ']', ']')
-double_operators = ('==', '>=', '<=', '++', '--', '<<', '>>', '||', '&&', '+=', '-=',)
-separators = (' ', ';', '{', '}', ')', '(', ',', '\t', '#', '\n', )
 
 #пробелы, табуляции и переводы строк игнорируются анализатором языка си
 def remove_empty_tokens(tokens):

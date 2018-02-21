@@ -32,3 +32,6 @@ class Error:
 
 class Program:
     pass
+
+class Type(Keyword):
+    pass
