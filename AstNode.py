@@ -1,14 +1,10 @@
 class AstNode:
-	def __init__(self, token, child_l = None, child_r = None):
+	def __init__(self, token, *args):
 		self.token = token
 		self.parent = None
 		self.childs = list()
-		self.child_l = child_l
-		self.child_r = child_r
-		if child_l != None:
-			self.add_child(child_l)
-		if child_r != None:
-			self.add_child(child_r)
+		for child in args:
+			self.add_child(child)
 		self.i = 0
 
 	def add_child(self, child):
@@ -27,8 +23,11 @@ class AstNode:
 	def get_child(self, index):
 		return self.childs[index]
 
-	def print_tree(self, start_child, ident=3):
+	def print(self, start_child):
+		print(start_child.token.value)
+		self.print_tree(start_child)
+
+	def print_tree(self, start_child, ident=1):
 		for child in start_child.childs:
-			print((' ' * (ident - 1) + '|'))
-			print((' ' * ident) + '—— ' + child.token.value)
-			self.print_tree(child, ident=(ident + 3))
+			print((' ' * ident) + '|' + child.token.value)
+			self.print_tree(child, ident=(ident+1))

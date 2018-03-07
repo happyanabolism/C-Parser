@@ -14,3 +14,6 @@ class IdentifierError(SyntxError):
 
 class ComparisonError(SyntxError):
 	pass
+
+class OperatorError(SyntxError):
+	pass

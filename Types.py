@@ -27,6 +27,9 @@ class String(Constant):
 class Char(Constant):
 	pass
 
+class Bool(Constant):
+    pass
+
 class Error:
     pass
 

@@ -1,9 +1,10 @@
 import re
 from tabulate import tabulate
 from Token import Token
-from Types import (Keyword, Identifier, Float, String,
+from Types import (Keyword, Identifier, Float, String, Bool,
 				  Operator, Separator, Error, Integer, Char)
-from types_table import keywords, separators, operators, double_operators
+from types_table import (keywords, separators, operators, double_operators,
+						 boolean_constants)
 from exceptions2 import BracketsError
 
 
@@ -69,11 +70,6 @@ def find_tokens(line, num_line):
 		pos = line.find(token, pos + 1)
 		res_tokens.append([token, pos, num_line])
 
-	#try:
-	#	check_brackets(res_tokens)
-	#except BracketsError as error:
-	#	print(error)
-	#	exit(1)
 	check_brackets(res_tokens)
 
 	return res_tokens
@@ -95,6 +91,8 @@ def classify_tokens(tokens):
 			classified_tokens.append(Token(token[0], String, 'string constant', token[1], token[2]))
 		elif re.findall(char_match, token[0]):
 			classified_tokens.append(Token(token[0], Char, 'char constant', token[1], token[2]))
+		elif token[0] in boolean_constants:
+			classified_tokens.append(Token(token[0], Bool, 'boolean constant', token[1], token[2]))
 		elif token[0] in separators:
 			classified_tokens.append(Token(token[0], Separator, 'separator', token[1], token[2]))
 		elif re.findall(variable_match, token[0]):
@@ -113,5 +111,12 @@ if __name__ == '__main__':
 			classified_tokens += classify_tokens(find_tokens(line, num_line))
 			num_line += 1
 #	classified_tokens = classify_tokens(find_tokens("""5""", 1))
-	for token in classified_tokens:
+	for token in sorted(classified_tokens, key=lambda x: x.type_name):
+		if token.type == Error:
+			with open('test_files/test.c', 'r') as file:
+				num_line = 1
+				for line in file:
+					if token.num_line == num_line:
+						print(line)
+					num_line += 1
 		print(token)
