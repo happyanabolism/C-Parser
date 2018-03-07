@@ -1,34 +1,11 @@
 from analiser import classify_tokens, find_tokens
-from types_table import types, comparison_operators, end_of_line
+from types_table import types, comparison_operators, end_of_line, assigment_operators
 from exceptions2 import (IdentifierError, BracketsError, SyntxError,
 						 ComparisonError, OperatorError)
 from AstNode import AstNode
 from Token import Token
 import Types
 import logging
-
-def log(func):
-    """
-    Логируем какая функция вызывается
-    """ 
-    def wrap_log(*args, **kwargs):
-        name = func.__name__
-        logger = logging.getLogger(name)
-        logger.setLevel(logging.INFO)
-    
-        # Открываем файл логов для записи
-        ch = logging.ConsoleHandler()
-        fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-        formatter = logging.Formatter(fmt)
-        ch.setFormatter(formatter)
-        logger.addHandler(ch)
-        
-        logger.info("Вызов функции: %s" % name)
-        result = func(*args, **kwargs)
-        logger.info("Результат: %s" % result)
-        return func
-    
-    return wrap_log
 
 
 class Parser:
@@ -92,8 +69,8 @@ class Parser:
 			raise ComparisonError(token.start_pos, token.num_line,
 					'ожидался оператор сравнения')
 
-	def end_of_line(self):
-		"""end_of_line -> ';'"""
+	def semicolon(self):
+		"""semicolon -> ';'"""
 		token = self._curr_token()
 		self._skip()
 		if token.value != end_of_line:
@@ -109,6 +86,17 @@ class Parser:
 					"ожидался оператор '{}'".format(operator))
 		else:
 			return token
+
+	def assigment_operator(self):
+		"""assigment operator -> <оператор с присвоением>"""
+		token = self._curr_token()
+		self._skip()
+		if token.value in assigment_operators:
+			return token
+		else:
+			raise OperatorError(token.start_pos, token.num_line,
+					"ожидался оператор с присвоением")
+
 
 	def parenthesis(self, symbol):
 		"""parenthesis -> symbol"""
@@ -175,7 +163,7 @@ class Parser:
 		identifier = self.identifier()
 		assign_token = self.operator('=')
 		value = self.term()
-		self.end_of_line()
+		self.semicolon()
 		return AstNode(assign_token, identifier, value)
 
 	def predicate(self):
@@ -204,12 +192,47 @@ class Parser:
 		self.parenthesis(')')
 		return AstNode(while_token, predicate)
 
+	def expression(self, semicolon=True):
+		"""indetifier (= | += | -= | *= | /= term) | ('++' | --) """
+		identifier = self.identifier()
+		curr_token = self._curr_token()
+		if curr_token.value == '++' or curr_token.value == '--':
+			self._skip()
+			return AstNode(curr_token, identifier)
+		else:
+			oper = self.assigment_operator()
+		term = self.term()
+		if semicolon == True:
+			self.semicolon()
 
-	def assign(self):
+		return AstNode(oper, identifier, term)
+
+
+	def for_cycle(self):
+		"""for cycle -> for '(' init | type init ';' predicate ';' expression ')' """
+		for_token = self.operator('for')
+		self.parenthesis('(')
+		curr_token = self._curr_token()
+		if curr_token.value in types:
+			first_block = self.assign(with_initializing=True)
+		else:
+			first_block = self.init()
+		second_block = self.predicate()
+		self.semicolon()
+		third_block = self.expression(semicolon=False)
+		self.parenthesis(')')
+		return AstNode(for_token, first_block, second_block, third_block)
+
+
+	def assign(self, with_initializing=False):
 		"""assign -> type init | type identifier"""
 		type_token = self.type()
 		future_token = self._future_token(2)
 		if future_token == ';' or future_token is None:
+			if with_initializing == True:
+				raise OperatorError(future_token.start_pos, future_token.num_line, 
+						'ожидалась инициализация')
+
 			identifier = self.identifier()
 			return AstNode(type_token.token, identifier)
 		else:
@@ -223,7 +246,7 @@ class Parser:
 		"""program -> assign | if_condition"""
 		program_token = Token('program', Types.Program, 'program', 0, 0)
 		program = AstNode(program_token)
-		tree = self.while_cycle()
+		tree = self.for_cycle()
 		#if tree == None:
 		#	self.position = 0
 		#	tree = self.if_condition()
@@ -235,13 +258,13 @@ class Parser:
 
 
 s = '((5 + 7) * (9 - 1));'
-s = 'a = 5 + 4;'
+s = 'for(int i = 0; i < 4; i++)'
 i = 'if (a > 4 + 7 * (3 + 3))'
 i = 'while(a == true)'
 try:
-	tokens = classify_tokens(find_tokens(i, 1))
+	tokens = classify_tokens(find_tokens(s, 1))
 	parser = Parser(tokens)
-	print(i)
+	print(s)
 	tree = parser.program()
 except SyntxError as error:
 	print(error)
