@@ -246,27 +246,33 @@ class Parser:
 		"""program -> assign | if_condition"""
 		program_token = Token('program', Types.Program, 'program', 0, 0)
 		program = AstNode(program_token)
-		tree = self.for_cycle()
+		while(True):
+			future_token = self._future_token(1)
+			if future_token is None:
+				break
+			tree = self.for_cycle()
 		#if tree == None:
 		#	self.position = 0
 		#	tree = self.if_condition()
 		#if tree == None:
 		#	return
-		program.add_child(tree)
+			program.add_child(tree)
 		return program
 
 
 
 s = '((5 + 7) * (9 - 1));'
-s = 'for(int i = 0; i < 4; i++)'
+s = """for(int i = 0; i < 4; i++)
+	   for(j = 3 + 3; j != 9; j = j + 4)"""
 i = 'if (a > 4 + 7 * (3 + 3))'
-i = 'while(a == true)'
+i = 'for(j=3+3;j!=9;j=j+4)'
 try:
 	tokens = classify_tokens(find_tokens(s, 1))
 	parser = Parser(tokens)
 	print(s)
 	tree = parser.program()
 except SyntxError as error:
+	print(parser._curr_token())
 	print(error)
 	exit(1)
 print('-'*20)

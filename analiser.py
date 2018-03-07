@@ -57,14 +57,21 @@ def find_tokens(line, num_line):
 			copy_line = copy_line.replace(separator, '~' + separator + '~')
 	for double_operator in double_operators:
 		if line.find(double_operator) > -1:
-			copy_line = copy_line.replace(double_operator, '~' + double_operator + '~')
+			copy_line = copy_line.replace(double_operator, '`' + double_operator + '`')
+	
+	doub_op_tokens = re.split(r'[`]', copy_line)
+	for t in doub_op_tokens:
+		if t in double_operators:
+			tokens.append(t)
+			copy_line = copy_line.replace('`'+t+'`', '~')
+
 	for operator in operators:
 		pos = copy_line.find(operator)
 		if (pos > -1 and (copy_line[pos] + copy_line[pos + 1]) not in double_operators
 			and (copy_line[pos - 1] + copy_line[pos]) not in double_operators):
 			copy_line = copy_line.replace(operator, '~' + operator + '~')
 
-	tokens = re.split(r'[~]', copy_line)
+	tokens += re.split(r'[~]', copy_line)
 	tokens = remove_empty_tokens(tokens)
 	pos = -1
 	for token in tokens:

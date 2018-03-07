@@ -9,5 +9,5 @@ class Token:
         self.type_name = type_name
 
     def __str__(self):
-        return 'name: {:<20}type: {:<20}start position: {:<15}' \
+        return 'name: {:<9}type: {:<20}start position: {:<15}' \
                'line number: {}'.format(self.value, self.type_name, self.start_pos, self.num_line)
