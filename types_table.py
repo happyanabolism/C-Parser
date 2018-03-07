@@ -6,7 +6,7 @@ keywords = ('else', 'auto',	'enum',	'operator', 'bool',
             'while', 'define', 'include', )
 
 operators = ('=', '+', '-', '*', '/', '%', '<', '>', '|', '&', '^', '[', ']', ']')
-double_operators = ('==', '>=', '<=', '++', '--', '<<', '>>', '||', '&&', '+=', '-=',)
+double_operators = ('==', '>=', '<=', '++', '--', '<<', '>>', '||', '&&', '+=', '-=', '!=')
 separators = (' ', ';', '{', '}', ')', '(', ',', '\t', '#', '\n', )
 types = ('bool', 'int', 'float', 'char', 'double', )
 comparison_operators = ('==', '>=', '<=', '!=', '<', '>', )

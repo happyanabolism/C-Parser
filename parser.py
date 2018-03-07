@@ -121,7 +121,6 @@ class Parser:
 	def group(self):
 		"""group -> '(' term ')' | identifier | number"""
 		token = self._curr_token()
-		print(token)
 
 		if token.value == '(':
 			self._skip()
@@ -173,13 +172,11 @@ class Parser:
 
 	def init(self):
 		"""identifier '=' term ;"""
-		ident_token = self._curr_token()
-		if ident_token.type == Types.Identifier:
-			identifier = self.identifier()
-			assign_token = self.operator('=')
-			value = self.term()
-			separator_token = self.end_of_line()
-			return AstNode(assign_token, identifier, value)
+		identifier = self.identifier()
+		assign_token = self.operator('=')
+		value = self.term()
+		self.end_of_line()
+		return AstNode(assign_token, identifier, value)
 
 	def predicate(self):
 		"""predicate -> term comparison term | term"""
@@ -192,12 +189,20 @@ class Parser:
 			return left
 
 	def if_condition(self):
-		"""if_condition -> if '(' predicate ')'"""
+		"""if condition -> if '(' predicate ')'"""
 		if_token = self.operator('if')
 		self.parenthesis('(')
 		predicate = self.predicate()
 		self.parenthesis(')')
 		return AstNode(if_token, predicate)
+
+	def while_cycle(self):
+		"""while cycle -> while '(' predicate ')'"""
+		while_token = self.operator('while')
+		self.parenthesis('(')
+		predicate = self.predicate()
+		self.parenthesis(')')
+		return AstNode(while_token, predicate)
 
 
 	def assign(self):
@@ -218,7 +223,7 @@ class Parser:
 		"""program -> assign | if_condition"""
 		program_token = Token('program', Types.Program, 'program', 0, 0)
 		program = AstNode(program_token)
-		tree = self.if_condition()
+		tree = self.while_cycle()
 		#if tree == None:
 		#	self.position = 0
 		#	tree = self.if_condition()
@@ -230,9 +235,9 @@ class Parser:
 
 
 s = '((5 + 7) * (9 - 1));'
-s = 'int a = 5;'
+s = 'a = 5 + 4;'
 i = 'if (a > 4 + 7 * (3 + 3))'
-i = 'if(true)'
+i = 'while(a == true)'
 try:
 	tokens = classify_tokens(find_tokens(i, 1))
 	parser = Parser(tokens)
@@ -241,4 +246,5 @@ try:
 except SyntxError as error:
 	print(error)
 	exit(1)
+print('-'*20)
 tree.print(tree)

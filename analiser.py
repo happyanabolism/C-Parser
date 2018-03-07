@@ -60,7 +60,8 @@ def find_tokens(line, num_line):
 			copy_line = copy_line.replace(double_operator, '~' + double_operator + '~')
 	for operator in operators:
 		pos = copy_line.find(operator)
-		if pos > -1 and (copy_line[pos] + copy_line[pos + 1]) not in double_operators:
+		if (pos > -1 and (copy_line[pos] + copy_line[pos + 1]) not in double_operators
+			and (copy_line[pos - 1] + copy_line[pos]) not in double_operators):
 			copy_line = copy_line.replace(operator, '~' + operator + '~')
 
 	tokens = re.split(r'[~]', copy_line)
