@@ -8,12 +8,14 @@ class AstNode:
 		self.i = 0
 
 	def add_child(self, child):
-		#if child.parent != None:
-		#	child.parent.childs.remove(child)
-		#f child in self.childs:
-		#	self.childs.remove(child)
 		self.childs.append(child)
 		child.parent = self
+
+	def add_childs(self, childs):
+		for child in childs:
+			self.childs.append(child)
+			child.parent = self
+
 
 	def remove_child(self, child):
 		self.childs.remove(child)
@@ -27,7 +29,7 @@ class AstNode:
 		print(start_child.token.value)
 		self.print_tree(start_child)
 
-	def print_tree(self, start_child, ident=1):
+	def print_tree(self, start_child, ident=2):
 		for child in start_child.childs:
-			print((' ' * ident) + '|' + child.token.value)
-			self.print_tree(child, ident=(ident+1))
+			print(' |'+ ('-' * ident) + '|' + child.token.value)
+			self.print_tree(child, ident=(ident+2))

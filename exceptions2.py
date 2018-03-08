@@ -17,3 +17,6 @@ class ComparisonError(SyntxError):
 
 class OperatorError(SyntxError):
 	pass
+
+class BraceError(SyntxError):
+	pass

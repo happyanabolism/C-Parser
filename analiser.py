@@ -74,8 +74,11 @@ def find_tokens(line, num_line):
 	tokens += re.split(r'[~]', copy_line)
 	tokens = remove_empty_tokens(tokens)
 	pos = -1
+	finded_tokens = {}
 	for token in tokens:
 		pos = line.find(token, pos + 1)
+		if pos < 0:
+			pos = 0
 		res_tokens.append([token, pos, num_line])
 
 	check_brackets(res_tokens)
@@ -107,6 +110,7 @@ def classify_tokens(tokens):
 			classified_tokens.append(Token(token[0], Identifier, 'identifier', token[1], token[2]))
 		else:
 			classified_tokens.append(Token(token[0], Error, 'error', token[1], token[2]))
+
 	return sorted(classified_tokens, key=lambda x: x.start_pos)
 
 

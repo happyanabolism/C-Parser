@@ -1,7 +1,7 @@
 from analiser import classify_tokens, find_tokens
 from types_table import types, comparison_operators, end_of_line, assigment_operators
 from exceptions2 import (IdentifierError, BracketsError, SyntxError,
-						 ComparisonError, OperatorError)
+						 ComparisonError, OperatorError, BraceError)
 from AstNode import AstNode
 from Token import Token
 import Types
@@ -26,7 +26,7 @@ class Parser:
 		try:
 			return self.tokens[self.position]
 		except:
-			return  self.tokens[self.position-1]
+			return  self.tokens[len(self.tokens)-1]
 
 	def number(self):
 		"""number -> <число>"""
@@ -94,17 +94,27 @@ class Parser:
 		if token.value in assigment_operators:
 			return token
 		else:
+			print(token)
 			raise OperatorError(token.start_pos, token.num_line,
 					"ожидался оператор с присвоением")
 
 
 	def parenthesis(self, symbol):
-		"""parenthesis -> symbol"""
+		"""parenthesis -> '(' | ')'"""
 		token = self._curr_token()
 		self._skip()
 		if token.value != symbol:
 			raise BracketsError(token.start_pos, token.num_line, 
-    			"ожидался оператор {}".format(symbol))
+    			"ожидался оператор '{}'".format(symbol))
+
+	def brace(self, symbol):
+		"""brace -> '{' | '}'"""
+		token = self._curr_token()
+		self._skip()
+		if token.value != symbol:
+			raise BraceError(token.start_pos, token.num_line,
+				"ожидался оператор '{}'".format(symbol))
+
 
 	def group(self):
 		"""group -> '(' term ')' | identifier | number"""
@@ -182,7 +192,10 @@ class Parser:
 		self.parenthesis('(')
 		predicate = self.predicate()
 		self.parenthesis(')')
-		return AstNode(if_token, predicate)
+		main_block = self.block()
+		if_condition = AstNode(if_token, predicate)
+		if_condition.add_childs(main_block)
+		return if_condition
 
 	def while_cycle(self):
 		"""while cycle -> while '(' predicate ')'"""
@@ -190,7 +203,10 @@ class Parser:
 		self.parenthesis('(')
 		predicate = self.predicate()
 		self.parenthesis(')')
-		return AstNode(while_token, predicate)
+		main_block = self.block()
+		while_cycle = AstNode(while_token, predicate)
+		while_cycle.add_childs(main_block)
+		return while_cycle
 
 	def expression(self, semicolon=True):
 		"""indetifier (= | += | -= | *= | /= term) | ('++' | --) """
@@ -198,6 +214,8 @@ class Parser:
 		curr_token = self._curr_token()
 		if curr_token.value == '++' or curr_token.value == '--':
 			self._skip()
+			if semicolon == True:
+				self.semicolon()
 			return AstNode(curr_token, identifier)
 		else:
 			oper = self.assigment_operator()
@@ -221,7 +239,10 @@ class Parser:
 		self.semicolon()
 		third_block = self.expression(semicolon=False)
 		self.parenthesis(')')
-		return AstNode(for_token, first_block, second_block, third_block)
+		main_block = self.block()
+		for_cycle = AstNode(for_token, first_block, second_block, third_block)
+		for_cycle.add_childs(main_block)
+		return for_cycle
 
 
 	def assign(self, with_initializing=False):
@@ -239,31 +260,64 @@ class Parser:
 			init_token = self.init()
 			return AstNode(type_token.token, init_token)
 			
-			
+	
+	def block(self):
+		"""block -> '{' (assing | expression | for cycle | if condition
+						 | while cycle | function)* '}'"""
+		childs = list()
+		self.brace('{')
+		while True:
+			curr_token = self._future_token(0)
+			if curr_token.value == '}':
+				break
+			elif curr_token.value == 'if':
+				tree = self.if_condition()
+			elif curr_token.value == 'while':
+				tree = self.while_cycle()
+			elif curr_token.value == 'for':
+				tree = self.for_cycle()
+			elif curr_token.value in types:
+				tree = self.assign()
+			else:
+				tree = self.expression()
+			childs.append(tree)
+		self.brace('}')
+		return childs		
 
 
 	def program(self):
 		"""program -> assign | if_condition"""
 		program_token = Token('program', Types.Program, 'program', 0, 0)
 		program = AstNode(program_token)
-		while(True):
-			future_token = self._future_token(1)
+		while True:
+			future_token = self._future_token(0)
 			if future_token is None:
 				break
-			tree = self.for_cycle()
-		#if tree == None:
-		#	self.position = 0
-		#	tree = self.if_condition()
-		#if tree == None:
-		#	return
+			elif future_token.value == 'if':
+				tree = self.if_condition()
+			elif future_token.value == 'while':
+				tree = self.while_cycle()
+			elif future_token.value == 'for':
+				tree = self.for_cycle()
+			elif future_token.value in types:
+				tree = self.assign()
+			else:
+				tree = self.expression()
 			program.add_child(tree)
 		return program
 
 
 
 s = '((5 + 7) * (9 - 1));'
-s = """for(int i = 0; i < 4; i++)
-	   for(j = 3 + 3; j != 9; j = j + 4)"""
+s = """for(int i = 0; i < 4; i++) {
+	       int i = 5;
+	       int b = 7;
+	       i += b;
+	   }
+
+	   if (i > 5) {
+	       g++;
+	   }"""
 i = 'if (a > 4 + 7 * (3 + 3))'
 i = 'for(j=3+3;j!=9;j=j+4)'
 try:
