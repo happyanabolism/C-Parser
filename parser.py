@@ -219,7 +219,7 @@ class Parser:
 		self.parenthesis('(')
 		predicate = self.predicate()
 		self.parenthesis(')')
-		main_block = self.block(_return=True)
+		main_block = self.block()
 		if_condition = AstNode(if_token, predicate)
 		if_condition.add_childs(main_block)
 		return if_condition
@@ -237,7 +237,9 @@ class Parser:
 
 	def expression(self, semicolon=True):
 		"""indetifier (= | += | -= | *= | /= term) | ('++' | --) """
+		print('identifier', ' ', self._curr_token())
 		identifier = self.identifier()
+		print('operator', ' ', self._curr_token())
 		curr_token = self._curr_token()
 		if curr_token.value == '++' or curr_token.value == '--':
 			self._skip()
@@ -246,6 +248,7 @@ class Parser:
 			return AstNode(curr_token, identifier)
 		else:
 			oper = self.assigment_operator()
+		print('term', ' ', self._curr_token())
 		term = self.term()
 		if semicolon == True:
 			self.semicolon()
@@ -373,6 +376,8 @@ class Parser:
 try:
 	analiser = LexAnaliser('test_files/test.c')
 	tokens = analiser.analise()
+	for token in tokens:
+		print(token)
 	parser = Parser(tokens)
 	tree = parser.program()
 except SyntxError as error:

@@ -5,7 +5,7 @@ keywords = ('else', 'auto',	'enum',	'operator', 'bool',
             'delete', 'int', 'volatile', 'do', 'long', 'struct', 'double', 'switch',
             'while', 'define', 'include', )
 
-operators = ('=', '+', '-', '*', '/', '%', '<', '>', '|', '&', '^', '[', ']', ']')
+operators = ('=', '+', '-', '*', '/', '%', '<', '>', '|', '&', '^', '[', ']',)
 double_operators = ('==', '>=', '<=', '++', '--', '||', '&&', '+=', '-=', '!=',)
 separators = (' ', ';', '{', '}', ')', '(', ',', '\t', '#', '\n', )
 types = ('bool', 'int', 'float', 'char', 'double', 'void', )

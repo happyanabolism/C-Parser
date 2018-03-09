@@ -1,11 +1,5 @@
-if (a > 5) {
-	bool f = false;
-	char c = 'f';
-	char s = "dfdfdf";
+if(a >= c) {
 	int a = 2;
-	int c = b4;
-	float number = a - c;
-	f = number + 0;
-
-	return i + (5 + x);
+	a++;
+	fdf -= v;
 }

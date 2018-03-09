@@ -12,9 +12,10 @@ class LexAnaliser:
 	def __init__(self, source_file):
 		self.float_match = r'^[0-9]*[.,][0-9]+$'
 		self.integer_match = r'^[-+]?\d*$'
-		self.string_match = r'".*"'
+		self.string_match = r'"\w*"'
 		self.char_match = r"'.{1}'"
 		self.variable_match = r'(^[a-zA-Z_$][a-zA-Z0-9_$]*$)'
+		self.doub_op_match = r'(\+=|-=|\+\+|==|!=|\|\||&&|--|>=|<=)'
 		self.source_file = source_file
 
 	#пробелы, табуляции и переводы строк игнорируются анализатором языка си
@@ -50,22 +51,15 @@ class LexAnaliser:
 
 		tokens = re.findall(self.string_match, line)
 		tokens += re.findall(self.char_match, line)
+		tokens += re.findall(self.doub_op_match, line)
 		for token in tokens:
 			res_tokens.append([token, line.find(token), num_line])
+			line = line.replace(token, '~' * len(token), 1)
 			copy_line = copy_line.replace(token, '')
 	
 		for separator in separators:
 			if line.find(separator) > -1:
 				copy_line = copy_line.replace(separator, '~' + separator + '~')
-		for double_operator in double_operators:
-			if line.find(double_operator) > -1:
-				copy_line = copy_line.replace(double_operator, '`' + double_operator + '`')
-	
-		doub_op_tokens = re.split(r'[`]', copy_line)
-		for t in doub_op_tokens:
-			if t in double_operators:
-				tokens.append(t)
-				copy_line = copy_line.replace('`'+t+'`', '~')
 
 		for operator in operators:
 			pos = copy_line.find(operator)
