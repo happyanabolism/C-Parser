@@ -5,7 +5,7 @@ from Types import (Keyword, Identifier, Float, String, Bool,
 				  Operator, Separator, Error, Integer, Char)
 from types_table import (keywords, separators, operators, double_operators,
 						 boolean_constants)
-from exceptions2 import BracketsError
+from exceptions2 import BracketsError, LexicalError
 
 
 float_match = r'^[0-9]*[.,][0-9]+$'
@@ -51,7 +51,7 @@ def find_tokens(line, num_line):
 	for token in tokens:
 		res_tokens.append([token, line.find(token), num_line])
 		copy_line = copy_line.replace(token, '')
-
+	
 	for separator in separators:
 		if line.find(separator) > -1:
 			copy_line = copy_line.replace(separator, '~' + separator + '~')
@@ -71,7 +71,8 @@ def find_tokens(line, num_line):
 			and (copy_line[pos - 1] + copy_line[pos]) not in double_operators):
 			copy_line = copy_line.replace(operator, '~' + operator + '~')
 
-	tokens += re.split(r'[~]', copy_line)
+	tokens = re.split(r'[~]', copy_line)
+
 	tokens = remove_empty_tokens(tokens)
 	pos = -1
 	finded_tokens = {}
@@ -110,6 +111,7 @@ def classify_tokens(tokens):
 			classified_tokens.append(Token(token[0], Identifier, 'identifier', token[1], token[2]))
 		else:
 			classified_tokens.append(Token(token[0], Error, 'error', token[1], token[2]))
+			raise LexicalError(token[1], token[2], 'unknown lexem')
 
 	return sorted(classified_tokens, key=lambda x: x.start_pos)
 
@@ -122,13 +124,6 @@ if __name__ == '__main__':
 		for line in file:
 			classified_tokens += classify_tokens(find_tokens(line, num_line))
 			num_line += 1
-#	classified_tokens = classify_tokens(find_tokens("""5""", 1))
-	for token in sorted(classified_tokens, key=lambda x: x.type_name):
-		if token.type == Error:
-			with open('test_files/test.c', 'r') as file:
-				num_line = 1
-				for line in file:
-					if token.num_line == num_line:
-						print(line)
-					num_line += 1
+
+	for token in classified_tokens:
 		print(token)

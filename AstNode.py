@@ -26,7 +26,7 @@ class AstNode:
 		return self.childs[index]
 
 	def print(self, start_child):
-		print(start_child.token.value)
+		print(' |'+start_child.token.value)
 		self.print_tree(start_child)
 
 	def print_tree(self, start_child, ident=2):

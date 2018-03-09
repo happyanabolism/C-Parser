@@ -1,6 +1,6 @@
 from analiser import classify_tokens, find_tokens
 from types_table import types, comparison_operators, end_of_line, assigment_operators
-from exceptions2 import (IdentifierError, BracketsError, SyntxError,
+from exceptions2 import (IdentifierError, BracketsError, SyntxError, LexicalError,
 						 ComparisonError, OperatorError, BraceError)
 from AstNode import AstNode
 from Token import Token
@@ -39,8 +39,10 @@ class Parser:
 		"""identifier -> <идентификатор>"""
 		token = self._curr_token()
 		self._skip()
-		if token.type == Types.Identifier:
-			return AstNode(token)
+		if token.type != Types.Identifier:
+			raise SyntxError(token.start_pos, token.num_line,
+					'ожидался идентификатор')
+		return AstNode(token)
 
 	def boolean(self):
 		"""boolean -> <константа логическиго типа>"""
@@ -48,6 +50,21 @@ class Parser:
 		self._skip()
 		if token.type == Types.Bool:
 			return AstNode(token)
+
+	def char(self):
+		"""char -> <константа символьного типа>"""
+		token = self._curr_token()
+		self._skip()
+		if token.type == Types.Char:
+			return AstNode(token)
+
+	def string(self):
+		"""string -> <константа строкового типа>"""
+		token = self._curr_token()
+		self._skip()
+		if token.type == Types.String:
+			return AstNode(token)
+
 
 	def type(self):
 		"""type -> <тип>"""
@@ -169,10 +186,20 @@ class Parser:
 		return self.add()
 
 	def init(self):
-		"""identifier '=' term ;"""
+		"""identifier '=' term | string | char;"""
 		identifier = self.identifier()
 		assign_token = self.operator('=')
-		value = self.term()
+		
+		curr_token = self._curr_token()
+		print(curr_token)
+
+		if curr_token.type == Types.Char:
+			value = self.char()
+		elif curr_token.type == Types.String:
+			value = self.string()	
+		else:
+			value = self.term()
+		print(self._curr_token())
 		self.semicolon()
 		return AstNode(assign_token, identifier, value)
 
@@ -307,26 +334,20 @@ class Parser:
 		return program
 
 
-
-s = '((5 + 7) * (9 - 1));'
-s = """for(int i = 0; i < 4; i++) {
-	       int i = 5;
-	       int b = 7;
-	       i += b;
-	   }
-
-	   if (i > 5) {
-	       g++;
-	   }"""
-i = 'if (a > 4 + 7 * (3 + 3))'
-i = 'for(j=3+3;j!=9;j=j+4)'
+s = ''
+with open('test_files/test.c') as file:
+	for line in file:
+		s+=line
+print(s[:52])
 try:
 	tokens = classify_tokens(find_tokens(s, 1))
 	parser = Parser(tokens)
 	print(s)
 	tree = parser.program()
 except SyntxError as error:
-	print(parser._curr_token())
+	print(error)
+	exit(1)
+except LexicalError as error:
 	print(error)
 	exit(1)
 print('-'*20)
