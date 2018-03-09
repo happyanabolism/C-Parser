@@ -8,7 +8,7 @@ keywords = ('else', 'auto',	'enum',	'operator', 'bool',
 operators = ('=', '+', '-', '*', '/', '%', '<', '>', '|', '&', '^', '[', ']', ']')
 double_operators = ('==', '>=', '<=', '++', '--', '||', '&&', '+=', '-=', '!=',)
 separators = (' ', ';', '{', '}', ')', '(', ',', '\t', '#', '\n', )
-types = ('bool', 'int', 'float', 'char', 'double', )
+types = ('bool', 'int', 'float', 'char', 'double', 'void', )
 comparison_operators = ('==', '>=', '<=', '!=', '<', '>', )
 end_of_line = ';'
 boolean_constants = ('true', 'false')

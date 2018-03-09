@@ -1,4 +1,4 @@
-from analiser import classify_tokens, find_tokens
+from analiser import LexAnaliser
 from types_table import types, comparison_operators, end_of_line, assigment_operators
 from exceptions2 import (IdentifierError, BracketsError, SyntxError, LexicalError,
 						 ComparisonError, OperatorError, BraceError)
@@ -121,6 +121,8 @@ class Parser:
 		token = self._curr_token()
 		self._skip()
 		if token.value != symbol:
+			print('exception')
+			print(token)
 			raise BracketsError(token.start_pos, token.num_line, 
     			"ожидался оператор '{}'".format(symbol))
 
@@ -191,7 +193,6 @@ class Parser:
 		assign_token = self.operator('=')
 		
 		curr_token = self._curr_token()
-		print(curr_token)
 
 		if curr_token.type == Types.Char:
 			value = self.char()
@@ -199,7 +200,6 @@ class Parser:
 			value = self.string()	
 		else:
 			value = self.term()
-		print(self._curr_token())
 		self.semicolon()
 		return AstNode(assign_token, identifier, value)
 
@@ -219,7 +219,7 @@ class Parser:
 		self.parenthesis('(')
 		predicate = self.predicate()
 		self.parenthesis(')')
-		main_block = self.block()
+		main_block = self.block(_return=True)
 		if_condition = AstNode(if_token, predicate)
 		if_condition.add_childs(main_block)
 		return if_condition
@@ -251,6 +251,21 @@ class Parser:
 			self.semicolon()
 
 		return AstNode(oper, identifier, term)
+
+
+	def ret(self):
+		ret_token = self._curr_token()
+		self._skip()
+		curr_token = self._curr_token()
+		if curr_token.type == Types.Char:
+			value = self.char()
+		elif curr_token.type == Types.String:
+			value = self.string()	
+		else:
+			value = self.term()
+		self.semicolon()
+
+		return AstNode(ret_token, value)
 
 
 	def for_cycle(self):
@@ -288,9 +303,11 @@ class Parser:
 			return AstNode(type_token.token, init_token)
 			
 	
-	def block(self):
+	def block(self, _return=False):
 		"""block -> '{' (assing | expression | for cycle | if condition
 						 | while cycle | function)* '}'"""
+		returned = False
+
 		childs = list()
 		self.brace('{')
 		while True:
@@ -303,13 +320,32 @@ class Parser:
 				tree = self.while_cycle()
 			elif curr_token.value == 'for':
 				tree = self.for_cycle()
+			elif curr_token.value == 'return':
+				if _return == True:
+					tree = self.ret()
+					returned = True
+				else:
+					raise SyntxError(curr_token.start_pos, curr_token.num_line,
+							"return-statement with a value, in function returning 'void'")
 			elif curr_token.value in types:
 				tree = self.assign()
 			else:
 				tree = self.expression()
 			childs.append(tree)
+
+		if _return == True and returned == False:
+			print('++++++++')
+			raise SyntxError(self._curr_token().start_pos, self._curr_token().num_line,
+					"ожидался оператор '{}'".format('return'))
+
 		self.brace('}')
+
 		return childs		
+
+
+	def function(self):
+		"""function -> type identifier '(' args ')' block"""
+		pass
 
 
 	def program(self):
@@ -334,15 +370,10 @@ class Parser:
 		return program
 
 
-s = ''
-with open('test_files/test.c') as file:
-	for line in file:
-		s+=line
-print(s[:52])
 try:
-	tokens = classify_tokens(find_tokens(s, 1))
+	analiser = LexAnaliser('test_files/test.c')
+	tokens = analiser.analise()
 	parser = Parser(tokens)
-	print(s)
 	tree = parser.program()
 except SyntxError as error:
 	print(error)

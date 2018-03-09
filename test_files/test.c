@@ -6,4 +6,6 @@ if (a > 5) {
 	int c = b4;
 	float number = a - c;
 	f = number + 0;
+
+	return i + (5 + x);
 }
