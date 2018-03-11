@@ -29,7 +29,7 @@ class AstNode:
 		print(' |'+start_child.token.value)
 		self.print_tree(start_child)
 
-	def print_tree(self, start_child, ident=2):
+	def print_tree(self, start_child, ident=3):
 		for child in start_child.childs:
 			print(' |'+ ('-' * ident) + '|' + child.token.value)
-			self.print_tree(child, ident=(ident+2))
+			self.print_tree(child, ident=(ident+3))

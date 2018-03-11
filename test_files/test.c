@@ -13,3 +13,5 @@ int func(int c, char s) {
 
 	return 7 - 11;
 }
+
+z = (func(8, 9) / 2) + 8;

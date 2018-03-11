@@ -44,6 +44,39 @@ class Parser:
 					'ожидался идентификатор')
 		return AstNode(token)
 
+	def call_function(self):
+		"""call function -> identifier '(' (term ',')* ')'"""
+		curr_token = self._curr_token()
+		
+		function_token = Token('call function', Types.Function, 'call function', 
+				curr_token.start_pos, curr_token.num_line)
+		function = AstNode(function_token)
+
+		identifier = self.identifier()
+		function.add_child(identifier)
+		self.operator('(')
+
+		term = self.term()
+		function.add_child(term)
+
+		childs = list()
+
+		while True:
+			print(self._curr_token())
+			self.operator(',')
+			term = self.term()
+			childs.append(term)
+			curr_token = self._future_token(0)
+			if curr_token.value == ')':
+				break
+
+		self._skip()
+
+		function.add_childs(childs)
+		return function
+
+
+
 	def boolean(self):
 		"""boolean -> <константа логическиго типа>"""
 		token = self._curr_token()
@@ -147,6 +180,8 @@ class Parser:
 				self._skip()
 				return result
 		elif token.type == Types.Identifier:
+			if self._future_token(1).value == '(':
+				return self.call_function()
 			return self.identifier()
 		elif token.type == Types.Integer or token.type == Types.Float:
 			return self.number()
@@ -249,6 +284,8 @@ class Parser:
 		print('term', ' ', self._curr_token())
 		term = self.term()
 		if semicolon == True:
+			print('semicolon')
+			print(self._curr_token())
 			self.semicolon()
 
 		return AstNode(oper, identifier, term)
@@ -357,7 +394,6 @@ class Parser:
 
 		curr_token = self._future_token(0)
 		while True:
-			print(self._curr_token())
 			self.operator(',')
 			assign = self.assign(semicolon=False)
 			childs.append(assign)
