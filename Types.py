@@ -36,5 +36,8 @@ class Error:
 class Program:
     pass
 
+class Function:
+    pass
+
 class Type(Keyword):
     pass

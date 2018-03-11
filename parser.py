@@ -213,33 +213,31 @@ class Parser:
 		else:
 			return left
 
-	def if_condition(self):
+	def if_condition(self, _return=False):
 		"""if condition -> if '(' predicate ')'"""
 		if_token = self.operator('if')
 		self.parenthesis('(')
 		predicate = self.predicate()
 		self.parenthesis(')')
-		main_block = self.block()
+		main_block = self.block(_return=_return)
 		if_condition = AstNode(if_token, predicate)
 		if_condition.add_childs(main_block)
 		return if_condition
 
-	def while_cycle(self):
+	def while_cycle(self, _return=False):
 		"""while cycle -> while '(' predicate ')'"""
 		while_token = self.operator('while')
 		self.parenthesis('(')
 		predicate = self.predicate()
 		self.parenthesis(')')
-		main_block = self.block()
+		main_block = self.block(_return=_return)
 		while_cycle = AstNode(while_token, predicate)
 		while_cycle.add_childs(main_block)
 		return while_cycle
 
 	def expression(self, semicolon=True):
 		"""indetifier (= | += | -= | *= | /= term) | ('++' | --) """
-		print('identifier', ' ', self._curr_token())
 		identifier = self.identifier()
-		print('operator', ' ', self._curr_token())
 		curr_token = self._curr_token()
 		if curr_token.value == '++' or curr_token.value == '--':
 			self._skip()
@@ -271,40 +269,46 @@ class Parser:
 		return AstNode(ret_token, value)
 
 
-	def for_cycle(self):
+	def for_cycle(self, _return=False):
 		"""for cycle -> for '(' init | type init ';' predicate ';' expression ')' """
 		for_token = self.operator('for')
 		self.parenthesis('(')
 		curr_token = self._curr_token()
 		if curr_token.value in types:
-			first_block = self.assign(with_initializing=True)
+			first_block = self.assign_with_init()
 		else:
 			first_block = self.init()
 		second_block = self.predicate()
 		self.semicolon()
 		third_block = self.expression(semicolon=False)
 		self.parenthesis(')')
-		main_block = self.block()
+		main_block = self.block(_return=_return)
 		for_cycle = AstNode(for_token, first_block, second_block, third_block)
 		for_cycle.add_childs(main_block)
 		return for_cycle
 
 
-	def assign(self, with_initializing=False):
-		"""assign -> type init | type identifier"""
-		type_token = self.type()
-		future_token = self._future_token(2)
-		if future_token == ';' or future_token is None:
-			if with_initializing == True:
-				raise OperatorError(future_token.start_pos, future_token.num_line, 
-						'ожидалась инициализация')
+	def assign_with_init(self, semicolon=True):
+		"""assign -> type init ';'"""
+		type_token = self.type().token
+		init = self.init()
 
-			identifier = self.identifier()
-			return AstNode(type_token.token, identifier)
-		else:
-			init_token = self.init()
-			return AstNode(type_token.token, init_token)
+		if semicolon == True:
+			self.semicolon()
+
+		return AstNode(type_token, init)
 			
+
+	def assign(self, semicolon=True):
+		"""assign -> type identifier ';'"""
+		type_token = self.type().token
+		identifier = self.identifier()
+
+		if semicolon == True:
+			self.semicolon()
+
+		return AstNode(type_token, identifier)
+
 	
 	def block(self, _return=False):
 		"""block -> '{' (assing | expression | for cycle | if condition
@@ -318,18 +322,18 @@ class Parser:
 			if curr_token.value == '}':
 				break
 			elif curr_token.value == 'if':
-				tree = self.if_condition()
+				tree = self.if_condition(_return=_return)
 			elif curr_token.value == 'while':
-				tree = self.while_cycle()
+				tree = self.while_cycle(_return=_return)
 			elif curr_token.value == 'for':
-				tree = self.for_cycle()
+				tree = self.for_cycle(_return=_return)
 			elif curr_token.value == 'return':
 				if _return == True:
 					tree = self.ret()
 					returned = True
 				else:
 					raise SyntxError(curr_token.start_pos, curr_token.num_line,
-							"return-statement with a value, in function returning 'void'")
+							"return-statement is wrong")
 			elif curr_token.value in types:
 				tree = self.assign()
 			else:
@@ -337,7 +341,6 @@ class Parser:
 			childs.append(tree)
 
 		if _return == True and returned == False:
-			print('++++++++')
 			raise SyntxError(self._curr_token().start_pos, self._curr_token().num_line,
 					"ожидался оператор '{}'".format('return'))
 
@@ -346,9 +349,40 @@ class Parser:
 		return childs		
 
 
-	def function(self):
-		"""function -> type identifier '(' args ')' block"""
-		pass
+	def args(self):
+		"""args -> (assign ',')*"""
+		childs = list()
+		assign = self.assign(semicolon=False)
+		childs.append(assign)
+
+		curr_token = self._future_token(0)
+		while True:
+			print(self._curr_token())
+			self.operator(',')
+			assign = self.assign(semicolon=False)
+			childs.append(assign)
+			curr_token = self._future_token(0)
+			if curr_token.value == ')':
+				break
+
+		return childs
+
+	def assign_function(self):
+		"""function -> assign '(' args ')' block"""
+		function_token = Token('function', Types.Function, 'function', self._curr_token().start_pos,
+				self._curr_token().num_line)
+		assign = self.assign(semicolon=False)
+		self.parenthesis('(')
+		args = self.args()
+		self.parenthesis(')')
+		block = self.block(_return=True)
+		
+		function = AstNode(function_token)
+		function.add_child(assign)
+		function.add_childs(args)
+		function.add_childs(block)
+
+		return function
 
 
 	def program(self):
@@ -366,7 +400,7 @@ class Parser:
 			elif future_token.value == 'for':
 				tree = self.for_cycle()
 			elif future_token.value in types:
-				tree = self.assign()
+				tree = self.assign_function()
 			else:
 				tree = self.expression()
 			program.add_child(tree)
@@ -376,8 +410,8 @@ class Parser:
 try:
 	analiser = LexAnaliser('test_files/test.c')
 	tokens = analiser.analise()
-	for token in tokens:
-		print(token)
+	#for token in tokens:
+	#	print(token)
 	parser = Parser(tokens)
 	tree = parser.program()
 except SyntxError as error:
