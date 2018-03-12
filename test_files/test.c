@@ -2,6 +2,9 @@ if(a >= c) {
 	fdf -= v;
 }
 
+int left;
+float right = 9.4;
+
 int func(int c, char s) {
 	if (5 > 8) {
 		return 9;
@@ -15,3 +18,4 @@ int func(int c, char s) {
 }
 
 z = (func(8, 9) / 2) + 8;
+func();

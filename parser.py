@@ -56,23 +56,25 @@ class Parser:
 		function.add_child(identifier)
 		self.operator('(')
 
-		term = self.term()
-		function.add_child(term)
+		if self._curr_token().value == ')':
+			self._skip()
+			return function
 
-		childs = list()
+		args_token = Token('args', Types.Args, 'args', self._curr_token().start_pos,
+				self._curr_token().num_line)
+		args = AstNode(args_token)
 
 		while True:
-			print(self._curr_token())
-			self.operator(',')
 			term = self.term()
-			childs.append(term)
-			curr_token = self._future_token(0)
-			if curr_token.value == ')':
+			args.add_child(term)
+			if self._curr_token().value == ')':
 				break
+			self.operator(',')
+			curr_token = self._future_token(0)
 
 		self._skip()
 
-		function.add_childs(childs)
+		function.add_child(args)
 		return function
 
 
@@ -271,7 +273,15 @@ class Parser:
 		return while_cycle
 
 	def expression(self, semicolon=True):
-		"""indetifier (= | += | -= | *= | /= term) | ('++' | --) """
+		"""indetifier (= | += | -= | *= | /= term) | ('++' | --) | call_function"""
+		
+		if self._future_token(1).value == '(':
+			call_function = self.call_function()
+			if semicolon == True:
+				self.semicolon()
+			
+			return call_function
+
 		identifier = self.identifier()
 		curr_token = self._curr_token()
 		if curr_token.value == '++' or curr_token.value == '--':
@@ -281,11 +291,8 @@ class Parser:
 			return AstNode(curr_token, identifier)
 		else:
 			oper = self.assigment_operator()
-		print('term', ' ', self._curr_token())
 		term = self.term()
 		if semicolon == True:
-			print('semicolon')
-			print(self._curr_token())
 			self.semicolon()
 
 		return AstNode(oper, identifier, term)
@@ -326,12 +333,9 @@ class Parser:
 
 
 	def assign_with_init(self, semicolon=True):
-		"""assign -> type init ';'"""
+		"""assign -> type init"""
 		type_token = self.type().token
 		init = self.init()
-
-		if semicolon == True:
-			self.semicolon()
 
 		return AstNode(type_token, init)
 			
@@ -388,34 +392,43 @@ class Parser:
 
 	def args(self):
 		"""args -> (assign ',')*"""
-		childs = list()
-		assign = self.assign(semicolon=False)
-		childs.append(assign)
+		args_token = Token('args', Types.Args, 'args', self._curr_token().start_pos,
+				self._curr_token().num_line)
+		args = AstNode(args_token)
 
-		curr_token = self._future_token(0)
+		childs = list()
+
+		if self._curr_token().value == ')':
+			return args
+
 		while True:
-			self.operator(',')
 			assign = self.assign(semicolon=False)
 			childs.append(assign)
 			curr_token = self._future_token(0)
 			if curr_token.value == ')':
 				break
+			self.operator(',')
 
-		return childs
+		args.add_childs(childs)
+
+		return args
 
 	def assign_function(self):
 		"""function -> assign '(' args ')' block"""
 		function_token = Token('function', Types.Function, 'function', self._curr_token().start_pos,
 				self._curr_token().num_line)
+
+		type_token = self._curr_token()
+
 		assign = self.assign(semicolon=False)
 		self.parenthesis('(')
 		args = self.args()
 		self.parenthesis(')')
-		block = self.block(_return=True)
+		block = self.block(_return=(type_token.value != 'void'))
 		
 		function = AstNode(function_token)
 		function.add_child(assign)
-		function.add_childs(args)
+		function.add_child(args)
 		function.add_childs(block)
 
 		return function
@@ -436,7 +449,14 @@ class Parser:
 			elif future_token.value == 'for':
 				tree = self.for_cycle()
 			elif future_token.value in types:
-				tree = self.assign_function()
+				print(self._future_token(2))
+				if self._future_token(2).value == '(':
+					tree = self.assign_function()
+				elif self._future_token(2).value == ';':
+					tree = self.assign()
+				else:
+					tree = self.assign_with_init()
+
 			else:
 				tree = self.expression()
 			program.add_child(tree)

@@ -39,5 +39,8 @@ class Program:
 class Function:
     pass
 
+class Args:
+    pass
+
 class Type(Keyword):
     pass
