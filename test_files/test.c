@@ -1,9 +1,9 @@
 if(a >= c) {
-	fdf -= v;
+	fdf -= 0;
 }
 
-int left;
-float right = 9.4;
+int qw;
+float right = 90 + 53 - 9 * 10;
 
 int func(int c, char s) {
 	if (5 > 8) {
@@ -17,5 +17,9 @@ int func(int c, char s) {
 	return 7 - 11;
 }
 
-z = (func(8, 9) / 2) + 8;
-func();
+int fact(int n) {
+	if (n == 0 || n == 1) {
+		return 1;
+	}
+	return fact(n - 1) * n;
+}

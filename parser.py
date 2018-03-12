@@ -214,10 +214,7 @@ class Parser:
 			operation = token.value
 			self._skip()
 			temp = self.group()
-			if operation == '*':
-				result = AstNode(token, result, temp)
-			else:
-				result = AstNode(token, result, temp)
+			result = AstNode(token, result, temp)
 			token = self._curr_token()
 		return result
 
@@ -240,8 +237,8 @@ class Parser:
 		self.semicolon()
 		return AstNode(assign_token, identifier, value)
 
-	def predicate(self):
-		"""predicate -> term comparison term | term"""
+	def one_predicate(self):
+		"""one predicate -> term comparison term | term"""
 		left = self.term()
 		if self._curr_token().value in comparison_operators:
 			comparison = self.comparison()
@@ -249,6 +246,29 @@ class Parser:
 			return AstNode(comparison.token, left, right)
 		else:
 			return left
+
+	def predicate(self):
+		"""predicate -> (pridicate '||'|'&&')*"""
+		result = self.one_predicate()
+		token = self._curr_token()
+		while token.value == '||' or token.value == '&&':
+			operation = token.value
+			self._skip()
+			temp = self.one_predicate()
+			result = AstNode(token, result, temp)
+			token = self._curr_token()
+		return result
+
+	def mult(self):
+		result = self.group()
+		token = self._curr_token()
+		while token.value == '*' or token.value == '/':
+			operation = token.value
+			self._skip()
+			temp = self.group()
+			result = AstNode(token, result, temp)
+			token = self._curr_token()
+		return result
 
 	def if_condition(self, _return=False):
 		"""if condition -> if '(' predicate ')'"""
