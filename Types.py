@@ -42,5 +42,8 @@ class Function:
 class Args:
     pass
 
+class Assign:
+    pass
+
 class Type(Keyword):
     pass

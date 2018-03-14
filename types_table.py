@@ -12,4 +12,4 @@ types = ('bool', 'int', 'float', 'char', 'double', 'void', )
 comparison_operators = ('==', '>=', '<=', '!=', '<', '>', )
 end_of_line = ';'
 boolean_constants = ('true', 'false')
-assigment_operators = ('=', '/=', '+=', '-=', '*=',)
+assigment_operators = ('/=', '+=', '-=', '*=',)

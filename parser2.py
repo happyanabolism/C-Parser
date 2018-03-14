@@ -1,17 +1,22 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*- 
+
 from analiser import LexAnaliser
-from types_table import types, comparison_operators, end_of_line, assigment_operators
+from types_table import types, comparison_operators, end_of_line, assigment_operators, operators
 from exceptions2 import (IdentifierError, BracketsError, SyntxError, LexicalError,
-						 ComparisonError, OperatorError, BraceError)
+						 ComparisonError, OperatorError, BraceError, SemanticError)
 from AstNode import AstNode
 from Token import Token
 import Types
-import logging
-
 
 class Parser:
 	def __init__(self, tokens):
 		self.tokens = tokens
 		self.position = 0
+		
+		#table with identifiers
+		self.identifiers = list()
+		self.functions = list()
 
 	def _skip(self):
 		self.position += 1
@@ -27,6 +32,84 @@ class Parser:
 			return self.tokens[self.position]
 		except:
 			return  self.tokens[len(self.tokens)-1]
+
+
+	#methods for semantic parser------------------------
+
+	class Id:
+		def __init__(self, type, id):
+			self.type = type
+			self.id = id
+
+		def __str__(self):
+			return '{} {}'.format(self.type, self.id)
+
+	class Function:
+		def __init__(self, returned_type, id, args_tree):
+			self.returned_type = returned_type
+			self.id = id
+			self.args_tree = args_tree
+			self.args = self.parse_args(args_tree)
+
+		def parse_args(self, args_tree):
+			args = list()
+			for arg in args_tree.childs:
+				id = Parser.Id(arg.token.value, arg.get_child(0).token.value)
+				args.append((arg.token.value, arg.get_child(0).token.value))
+
+			return args
+
+
+		def __str__(self):
+			return '{} {} {}'.format(self.returned_type, self.id, self.args)
+
+	def add_identifier(self, type, identifier):
+		try:
+			id = self.identifiers[type]
+			self.identifiers[type].append(identifier)
+		except KeyError:
+			self.identifiers[type] = list()
+			self.identifiers[type].append(identifier)
+
+	def get_type_of_id(self, id):
+		for _id in self.identifiers:
+			if _id.id == id:
+				if _id.type == 'int':
+					return Types.Integer
+				elif _id.type == 'float':
+					return Types.Float
+				return _id.type
+
+	def get_type_of_func(self, func):
+		for _func in self.functions:
+			if _func.id == func:
+				if _func.returned_type == 'int':
+					return Types.Integer
+				elif _func.returned_type == 'float':
+					return Types.Float
+				return _func.returned_type
+
+
+	def get_type_of_term(self, term):
+		for child in term.childs:
+			type = self.get_type_of_term(child)
+
+		if term.token.value in operators:
+			left = self.get_type_of_term(term.get_child(0))
+			right = self.get_type_of_term(term.get_child(1))
+			if left == Types.Float or right == Types.Float:
+				return Types.Float
+			elif left == Types.Integer and right == Types.Integer:
+				return Types.Integer
+		else:
+			if term.token.type == Types.Function:
+				return self.get_type_of_func(term.get_child(0).token.value)
+			if term.token.type == Types.Identifier:
+				return self.get_type_of_id(term.token.value)
+			else:
+				return term.token.type
+
+
 
 	def number(self):
 		"""number -> <число>"""
@@ -146,7 +229,6 @@ class Parser:
 		if token.value in assigment_operators:
 			return token
 		else:
-			print(token)
 			raise OperatorError(token.start_pos, token.num_line,
 					"ожидался оператор с присвоением")
 
@@ -156,8 +238,6 @@ class Parser:
 		token = self._curr_token()
 		self._skip()
 		if token.value != symbol:
-			print('exception')
-			print(token)
 			raise BracketsError(token.start_pos, token.num_line, 
     			"ожидался оператор '{}'".format(symbol))
 
@@ -171,7 +251,7 @@ class Parser:
 
 
 	def group(self):
-		"""group -> '(' term ')' | identifier | number"""
+		"""group -> '(' term ')' | identifier | number | call function"""
 		token = self._curr_token()
 
 		if token.value == '(':
@@ -219,7 +299,10 @@ class Parser:
 		return result
 
 	def term(self):
-		return self.add()
+		term = self.add()
+		print(term.token.num_line)
+		print(self.get_type_of_term(term))
+		return term
 
 	def init(self):
 		"""identifier '=' term | string | char;"""
@@ -293,7 +376,7 @@ class Parser:
 		return while_cycle
 
 	def expression(self, semicolon=True):
-		"""indetifier (= | += | -= | *= | /= term) | ('++' | --) | call_function"""
+		"""indetifier (+= | -= | *= | /= term) | ('++' | --) | call_function"""
 		
 		if self._future_token(1).value == '(':
 			call_function = self.call_function()
@@ -355,6 +438,10 @@ class Parser:
 	def assign_with_init(self, semicolon=True):
 		"""assign -> type init"""
 		type_token = self.type().token
+
+		id = self.Id(type_token.value, self._curr_token().value)
+		self.identifiers.append(id)
+
 		init = self.init()
 
 		return AstNode(type_token, init)
@@ -362,11 +449,15 @@ class Parser:
 
 	def assign(self, semicolon=True):
 		"""assign -> type identifier ';'"""
+
 		type_token = self.type().token
 		identifier = self.identifier()
 
 		if semicolon == True:
 			self.semicolon()
+
+		id = self.Id(type_token.value, identifier.token.value)
+		self.identifiers.append(id)
 
 		return AstNode(type_token, identifier)
 
@@ -439,11 +530,16 @@ class Parser:
 				self._curr_token().num_line)
 
 		type_token = self._curr_token()
+		id = self._future_token(1)
 
 		assign = self.assign(semicolon=False)
 		self.parenthesis('(')
 		args = self.args()
 		self.parenthesis(')')
+
+		func = self.Function(type_token.value, id.value, args)
+		self.functions.append(func)
+
 		block = self.block(_return=(type_token.value != 'void'))
 		
 		function = AstNode(function_token)
@@ -469,7 +565,6 @@ class Parser:
 			elif future_token.value == 'for':
 				tree = self.for_cycle()
 			elif future_token.value in types:
-				print(self._future_token(2))
 				if self._future_token(2).value == '(':
 					tree = self.assign_function()
 				elif self._future_token(2).value == ';':
@@ -478,7 +573,10 @@ class Parser:
 					tree = self.assign_with_init()
 
 			else:
-				tree = self.expression()
+				if self._future_token(1).value == '=':
+					tree = self.init()
+				else:
+					tree = self.expression()
 			program.add_child(tree)
 		return program
 
@@ -498,3 +596,11 @@ except LexicalError as error:
 	exit(1)
 print('-'*20)
 tree.print(tree)
+
+identifiers = parser.identifiers
+functions = parser.functions
+for id in identifiers:
+	print(id)
+
+for func in functions:
+	print(func)
